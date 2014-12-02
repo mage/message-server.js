@@ -12,5 +12,5 @@
 		"index.js",
 		"longpolling.js",
 		"shortpolling.js"
-	],
+	]
 }
