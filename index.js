@@ -1,38 +1,20 @@
+var msgStream = require('mage-message-stream.js');
+
+
+/**
+ * @deprecated
+ * @type {Object}
+ */
+exports.transports = msgStream.transports;
+
+
 function MsgServer(eventManager) {
-	var HttpLongPolling = require('./longpolling.js');
-	var HttpShortPolling = require('./shortpolling.js');
-
-	this.transports = {
-		'http-longpolling': HttpLongPolling,
-		'http-shortpolling': HttpShortPolling
-	};
-
 	this.futureLog = {};	// queues up events for soon or immediate emission
 	this.expectedMsgId = null;
 	this.stream = null;
 
 	this.eventManager = eventManager;
 }
-
-
-/**
- * Creates a stream over which we can receive messages asynchronously
- *
- * @param {string} type     A key to this.transports (eg: 'http-longpolling')
- * @param {Object} options  Options to pass into the transport's constructor
- * @returns {Transport}     The Transport instance
- */
-
-MsgServer.prototype.createTransport = function (type, options) {
-	// check transport availability
-
-	var Transport = this.transports[type];
-	if (!Transport) {
-		throw new Error('No transport type "' + type + '" found.');
-	}
-
-	return new Transport(options);
-};
 
 
 /**
@@ -59,9 +41,15 @@ MsgServer.prototype.addMessages = function (messages) {
 
 		this.futureLog[msgId] = messages[msgId];
 
+		// tell the message stream it may confirm this message as delivered
+
+		if (this.stream && this.stream.confirm) {
+			this.stream.confirm(msgId);
+		}
+
 		// make sure we are expecting the lowest possible msgId first
 
-		if (this.expectedMsgId === null || msgIdNum < this.expectedMsgId) {
+		if (msgIdNum !== 0 && (this.expectedMsgId === null || msgIdNum < this.expectedMsgId)) {
 			this.expectedMsgId = msgIdNum;
 		}
 	}
@@ -98,7 +86,7 @@ MsgServer.prototype.emitEvents = function (msgId) {
 MsgServer.prototype.emitFutureLog = function () {
 	// Keep emitting until we encounter a gap, or futureLog has simply gone empty
 
-	while (this.futureLog.hasOwnProperty(this.expectedMsgId)) {
+	while (this.expectedMsgId && this.futureLog.hasOwnProperty(this.expectedMsgId)) {
 		// Early increment expectedMsgId, so that even if an event listener were to throw, the next
 		// time we call emitFutureLog, we know that we won't be expecting an old ID.
 
@@ -133,43 +121,70 @@ MsgServer.prototype.abort = function () {
  */
 
 MsgServer.prototype.start = function () {
+	if (!this.stream) {
+		throw new Error('The message stream has not yet been set up');
+	}
+
 	this.stream.start();
 };
 
 
 /**
- * Configures the message stream with HTTP configuration and a session key. If the key ever changes,
- * this function should be called again.
+ * Configures the message stream's transport types
  *
- * @param {Object} config
- * @param {Object} config.httpOptions
- * @param {string} config.url
- * @param {string} sessionKey
+ * @param {Object} cfg
+ * @return {boolean}       Returns true if succeeded to set up a transport, false otherwise.
  */
 
-MsgServer.prototype.setupMessageStream = function (config, sessionKey) {
+MsgServer.prototype.setupMessageStream = function (cfg) {
+	if (!cfg) {
+		return false;
+	}
+
 	var that = this;
+
+	// instantiate the event stream if needed
+
+	if (this.stream) {
+		this.stream.destroy();
+		this.stream = null;
+	}
+
+	var stream = msgStream.create(cfg);
+	if (!stream) {
+		return false;
+	}
+
+	stream.on('error', function (error) {
+		console.warn('Error from message stream transport:', error);
+	});
+
+	stream.on('delivery', function (messages) {
+		try {
+			that.addMessages(messages);
+			that.emitFutureLog();
+		} catch (error) {
+			console.error('Error during message stream event emission:', error);
+		}
+	});
+
+	this.stream = stream;
+
+	return true;
+};
+
+
+MsgServer.prototype.setSessionKey = function (sessionKey) {
+	if (!this.stream) {
+		throw new Error('The message stream has not yet been set up');
+	}
 
 	// Make sure any lingering messages are wiped out
 
 	this.resetFutureLog();
 
-	// instantiate the event stream if needed
-
-	if (!this.stream) {
-		this.stream = this.createTransport('http-longpolling', config.httpOptions);
-	}
-
-	// configure the stream with a session-key and callback for responses
-
-	this.stream.setup(config.url, { sessionKey: sessionKey }, null, function (messages) {
-		try {
-			that.addMessages(messages);
-			that.emitFutureLog();
-		} catch (error) {
-			console.error('Error in msgServer event emission:', error);
-		}
-	});
+	this.stream.setSessionKey(sessionKey);
 };
+
 
 module.exports = MsgServer;

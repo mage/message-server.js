@@ -1,16 +1,12 @@
 {
 	"name": "mage-message-server.js",
 	"repo": "mage/message-server.js",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "The I/O layer for MAGE.",
 	"dependencies": {
-		"component/emitter": "1.1.3",
-		"component/inherit": "0.0.3",
-		"mage/http-request.js": "0.1.0"
+		"mage/message-stream": "0.1.0"
 	},
 	"scripts": [
-		"index.js",
-		"longpolling.js",
-		"shortpolling.js"
+		"index.js"
 	]
 }
