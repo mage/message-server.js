@@ -4,7 +4,7 @@
 	"version": "0.2.0",
 	"description": "The I/O layer for MAGE.",
 	"dependencies": {
-		"mage/message-stream": "0.1.0"
+		"mage/message-stream.js": "0.1.0"
 	},
 	"scripts": [
 		"index.js"
