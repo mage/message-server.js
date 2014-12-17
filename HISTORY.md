@@ -1,5 +1,8 @@
 # mage-message-server.js changelog
 
+## v0.2.2
+ * Carry over confirmIds to the next stream when reconfiguring.
+
 ## v0.2.1
  * Reconfiguring the message server no longer drops the session key.
 

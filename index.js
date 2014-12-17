@@ -143,10 +143,13 @@ MsgServer.prototype.setupMessageStream = function (cfg) {
 	}
 
 	var that = this;
+	var confirmIds = [];
 
 	// instantiate the event stream if needed
 
 	if (this.stream) {
+		confirmIds = this.stream.getUnconfirmed();
+
 		this.stream.destroy();
 		this.stream = null;
 	}
@@ -171,6 +174,10 @@ MsgServer.prototype.setupMessageStream = function (cfg) {
 
 	if (this.sessionKey) {
 		stream.setSessionKey(this.sessionKey);
+	}
+
+	for (var i = 0; i < confirmIds.length; i += 1) {
+		stream.confirm(confirmIds[i]);
 	}
 
 	this.stream = stream;
