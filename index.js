@@ -12,6 +12,7 @@ function MsgServer(eventManager) {
 	this.futureLog = {};	// queues up events for soon or immediate emission
 	this.expectedMsgId = null;
 	this.stream = null;
+	this.sessionKey = null;
 
 	this.eventManager = eventManager;
 }
@@ -168,6 +169,10 @@ MsgServer.prototype.setupMessageStream = function (cfg) {
 		}
 	});
 
+	if (this.sessionKey) {
+		stream.setSessionKey(this.sessionKey);
+	}
+
 	this.stream = stream;
 
 	return true;
@@ -181,7 +186,10 @@ MsgServer.prototype.setSessionKey = function (sessionKey) {
 
 	// Make sure any lingering messages are wiped out
 
-	this.resetFutureLog();
+	if (sessionKey !== this.sessionKey) {
+		this.resetFutureLog();
+		this.sessionKey = sessionKey;
+	}
 
 	this.stream.setSessionKey(sessionKey);
 };
