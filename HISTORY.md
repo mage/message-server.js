@@ -1,5 +1,8 @@
 # mage-message-server.js changelog
 
+## v0.2.6
+ * Updated dependency mage-message-stream.js from v0.1.4 to v0.1.5
+
 ## v0.2.3
  * Updated dependency mage-message-stream.js from v0.1.1 to v0.1.2
 
