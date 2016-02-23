@@ -1,10 +1,10 @@
 {
 	"name": "mage-message-server.js",
 	"repo": "mage/message-server.js",
-	"version": "0.2.5",
+	"version": "0.2.6",
 	"description": "The I/O layer for MAGE.",
 	"dependencies": {
-		"mage/message-stream.js": "0.1.4"
+		"mage/message-stream.js": "0.1.5"
 	},
 	"scripts": [
 		"index.js"
